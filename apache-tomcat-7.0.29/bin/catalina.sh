@@ -123,6 +123,15 @@ done
 # Get standard environment variables
 PRGDIR=`dirname "$PRG"`
 
+# Cloudfoundry Specifics
+DEBUG_PORT=`ruby $PRGDIR/grabephemeralport.rb`
+if [ -z ${VCAP_APP_PORT} ]; then
+  export VCAP_APP_PORT=8080
+fi
+JAVA_OPTS="$JAVA_OPTS -Dport.http.nonssl=$VCAP_APP_PORT"
+JAVA_OPTS="$JAVA_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$DEBUG_PORT"
+echo "Using debug port $DEBUG_PORT"
+
 # Only set CATALINA_HOME if not already set
 [ -z "$CATALINA_HOME" ] && CATALINA_HOME=`cd "$PRGDIR/.." >/dev/null; pwd`
 
