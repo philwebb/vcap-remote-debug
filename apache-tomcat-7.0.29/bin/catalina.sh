@@ -129,7 +129,7 @@ if [ -z ${VCAP_APP_PORT} ]; then
   export VCAP_APP_PORT=8080
 fi
 JAVA_OPTS="$JAVA_OPTS -Dport.http.nonssl=$VCAP_APP_PORT"
-JAVA_OPTS="$JAVA_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$DEBUG_PORT"
+JAVA_OPTS="$JAVA_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$DEBUG_PORT -Dcloudfoundry.debug.port=$DEBUG_PORT"
 echo "Using debug port $DEBUG_PORT"
 
 # Only set CATALINA_HOME if not already set
