@@ -36,7 +36,7 @@ public class DebugInfoServlet extends HttpServlet {
 		if (port != null && port.length() > 0) {
 			String host = request.getLocalAddr();
 			PrintWriter writer = response.getWriter();
-			writer.append("{\"host\":\"" + host + "\",\"port\":" + port + "}");
+			writer.append("{\"hostname\":\"" + host + "\",\"port\":" + port + "}");
 			writer.flush();
 		}
 	}
