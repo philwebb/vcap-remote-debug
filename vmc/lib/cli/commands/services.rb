@@ -98,22 +98,26 @@ module VMC::Cli::Command
         err "Caldecott is not installed."
       end
 
-      ps = client.services
-      err "No services available to tunnel to" if ps.empty?
+      if @options[:javaapp]
+        display "Tunneling for remote Java Debug"
+      else
+        ps = client.services
+        err "No services available to tunnel to" if ps.empty?
 
-      unless service
-        choices = ps.collect { |s| s[:name] }.sort
-        service = ask(
-          "Which service to tunnel to?",
-          :choices => choices,
-          :indexed => true
-        )
+        unless service
+          choices = ps.collect { |s| s[:name] }.sort
+          service = ask(
+            "Which service to tunnel to?",
+            :choices => choices,
+            :indexed => true
+          )
+        end
+
+        info = ps.select { |s| s[:name] == service }.first
+
+        err "Unknown service '#{service}'" unless info
       end
-
-      info = ps.select { |s| s[:name] == service }.first
-
-      err "Unknown service '#{service}'" unless info
-
+  
       port = pick_tunnel_port(@options[:port] || 10000)
 
       raise VMC::Client::AuthError unless client.logged_in?
@@ -122,7 +126,7 @@ module VMC::Cli::Command
         display "Deploying tunnel application '#{tunnel_appname}'."
         auth = UUIDTools::UUID.random_create.to_s
         push_caldecott(auth)
-        bind_service_banner(service, tunnel_appname, false)
+        bind_service_banner(service, tunnel_appname, false) if service
         start_caldecott
       else
         auth = tunnel_auth
@@ -137,29 +141,54 @@ module VMC::Cli::Command
         invalidate_tunnel_app_info
 
         push_caldecott(auth)
-        bind_service_banner(service, tunnel_appname, false)
+        bind_service_banner(service, tunnel_appname, false) if service
         start_caldecott
       end
 
-      if not tunnel_bound?(service)
-        bind_service_banner(service, tunnel_appname)
-      end
+      if service
+        if not tunnel_bound?(service)
+          bind_service_banner(service, tunnel_appname)
+        end
 
-      conn_info = tunnel_connection_info info[:vendor], service, auth
-      display_tunnel_connection_info(conn_info)
-      display "Starting tunnel to #{service.bold} on port #{port.to_s.bold}."
-      start_tunnel(port, conn_info, auth)
+        conn_info = tunnel_connection_info info[:vendor], service, auth
+        display_tunnel_connection_info(conn_info)
+        display "Starting tunnel to #{service.bold} on port #{port.to_s.bold}."
+        start_tunnel(port, conn_info, auth)
 
-      clients = get_clients_for(info[:vendor])
+        clients = get_clients_for(info[:vendor])
 
-      if clients.empty?
-        client_name ||= "none"
+        if clients.empty?
+          client_name ||= "none"
+        else
+          client_name ||= ask(
+            "Which client would you like to start?",
+            :choices => ["none"] + clients.keys,
+            :indexed => true
+          )
+        end
       else
-        client_name ||= ask(
-          "Which client would you like to start?",
-          :choices => ["none"] + clients.keys,
-          :indexed => true
-        )
+        display "Getting application connection info: ", false
+        response = nil
+        10.times do
+          begin
+            response = RestClient.get("http://pwtc.cloudfoundry.com/runjdwpinfo-0.0.1-SNAPSHOT", "Auth-Token" => auth)
+            break
+          rescue RestClient::Exception
+            sleep 1
+          end
+          display ".", false
+        end
+
+        unless response
+          err "Expected remote tunnel to know about java application, but it doesn't"
+        end
+
+        display "OK".green
+
+        conn_info = JSON.parse("{\"hostname\":\"172.30.49.178\", \"port\":\"51515\"}")
+        display conn_info
+        client_name ||= "none"
+        start_tunnel(port, conn_info, auth)
       end
 
       if client_name == "none"

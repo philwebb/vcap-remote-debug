@@ -184,6 +184,7 @@ module VMC::Cli
     end
 
     def start_tunnel(local_port, conn_info, auth)
+      display conn_info
       @local_tunnel_thread = Thread.new do
         Caldecott::Client.start({
           :local_port => local_port,
@@ -193,7 +194,7 @@ module VMC::Cli
           :log_file => STDOUT,
           :log_level => ENV["VMC_TUNNEL_DEBUG"] || "ERROR",
           :auth_token => auth,
-          :quiet => true
+          :quiet => false
         })
       end
 

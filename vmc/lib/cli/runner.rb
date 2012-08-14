@@ -100,6 +100,8 @@ class VMC::Cli::Runner
       opts.on('-u PROXY')          { |proxy| @options[:proxy] = proxy }
 
       opts.on_tail('--options')    {          puts "#{opts}\n"; exit }
+
+      opts.on('--javaapp')         {          @options[:javaapp] = true }
     end
     instances_delta_arg = check_instances_delta!
     @args = opts_parser.parse!(@args)
